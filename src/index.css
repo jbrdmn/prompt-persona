@@ -175,12 +175,41 @@ body::after {
   animation: blink 1s step-end infinite;
 }
 
-/* ─── Flash-cut transitions ────────────────────────────────── */
+/* ─── Skip link ───────────────────────────────────────────── */
 
-.question-enter {
-  opacity: 1;
+.skip-link {
+  position: absolute;
+  top: -100%;
+  left: 16px;
+  z-index: 10000;
+  padding: 8px 16px;
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  background: #0A0A0A;
+  color: #F5F4EF;
+  text-decoration: none;
 }
 
-.question-exit {
-  opacity: 0;
+.skip-link:focus {
+  top: 16px;
 }
+
+.dark .skip-link {
+  background: #F5F4EF;
+  color: #0A0A0A;
+}
+
+/* ─── Focus visible ───────────────────────────────────────── */
+
+:focus-visible {
+  outline: 3px solid currentColor;
+  outline-offset: 2px;
+}
+
+button:focus-visible {
+  outline: 3px solid currentColor;
+  outline-offset: 2px;
+}
+

@@ -1,9 +1,12 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useRef, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import * as Icons from 'lucide-react';
 import { questions } from '../data/questions';
 import { Scores, SectionScores, PersonaType } from '../types';
 import { personaData } from '../data/personas';
 import { useTheme } from '../context/ThemeContext';
+
+const STORAGE_KEY = 'prompt-persona-quiz';
 
 function shuffleArray<T>(arr: T[]): T[] {
   const a = [...arr];
@@ -18,21 +21,46 @@ function emptyScores(): Scores {
   return { Director: 0, Collaborator: 0, Delegator: 0, Explorer: 0, Sceptic: 0, Hacker: 0 };
 }
 
+function loadSavedState(): { currentQuestion: number; scores: Scores; sectionScores: SectionScores } | null {
+  try {
+    const raw = sessionStorage.getItem(STORAGE_KEY);
+    if (!raw) return null;
+    const data = JSON.parse(raw);
+    if (typeof data.currentQuestion !== 'number' || !data.scores || !data.sectionScores) return null;
+    return data;
+  } catch {
+    return null;
+  }
+}
+
+function saveState(currentQuestion: number, scores: Scores, sectionScores: SectionScores) {
+  sessionStorage.setItem(STORAGE_KEY, JSON.stringify({ currentQuestion, scores, sectionScores }));
+}
+
+function clearSavedState() {
+  sessionStorage.removeItem(STORAGE_KEY);
+}
+
 interface QuizProps {
   onComplete: (scores: Scores, sectionScores: SectionScores) => void;
 }
 
 export function Quiz({ onComplete }: QuizProps) {
   const { theme } = useTheme();
-  const [currentQuestion, setCurrentQuestion] = useState(0);
+
+  const saved = useMemo(() => loadSavedState(), []);
+
+  const [currentQuestion, setCurrentQuestion] = useState(saved?.currentQuestion ?? 0);
   const [selectedAnswer, setSelectedAnswer] = useState<number | null>(null);
-  const [visible, setVisible] = useState(true);
-  const [scores, setScores] = useState<Scores>(emptyScores());
-  const [sectionScores, setSectionScores] = useState<SectionScores>({
-    s1: emptyScores(),
-    s2: emptyScores(),
-    s3: emptyScores()
-  });
+  const [scores, setScores] = useState<Scores>(saved?.scores ?? emptyScores());
+  const [sectionScores, setSectionScores] = useState<SectionScores>(
+    saved?.sectionScores ?? { s1: emptyScores(), s2: emptyScores(), s3: emptyScores() }
+  );
+  const questionRef = useRef<HTMLHeadingElement>(null);
+
+  useEffect(() => {
+    questionRef.current?.focus();
+  }, [currentQuestion]);
 
   const question = questions[currentQuestion];
   const isDark = theme === 'dark';
@@ -57,17 +85,17 @@ export function Quiz({ onComplete }: QuizProps) {
     };
     setSectionScores(newSectionScores);
 
-    setVisible(false);
-
     setTimeout(() => {
       if (currentQuestion < questions.length - 1) {
-        setCurrentQuestion(prev => prev + 1);
+        const next = currentQuestion + 1;
+        setCurrentQuestion(next);
         setSelectedAnswer(null);
-        setTimeout(() => setVisible(true), 80);
+        saveState(next, newScores, newSectionScores);
       } else {
+        clearSavedState();
         onComplete(newScores, newSectionScores);
       }
-    }, 0);
+    }, 300);
   };
 
   const getIcon = (iconName: string) => {
@@ -147,7 +175,14 @@ export function Quiz({ onComplete }: QuizProps) {
                 >
                   {label}
                 </div>
-                <div className="flex gap-[3px]">
+                <div
+                  className="flex gap-[3px]"
+                  role="progressbar"
+                  aria-label={`${label} section progress`}
+                  aria-valuenow={Math.max(0, Math.min(5, currentQuestion - start))}
+                  aria-valuemin={0}
+                  aria-valuemax={5}
+                >
                   {Array.from({ length: 5 }).map((_, i) => {
                     const idx = start + i;
                     const isFilled = idx < currentQuestion;
@@ -170,52 +205,68 @@ export function Quiz({ onComplete }: QuizProps) {
           </div>
         </div>
 
-        <div style={{ opacity: visible ? 1 : 0 }}>
-          <div
-            className="text-xs font-bold uppercase mb-6"
-            style={{ letterSpacing: '0.12em', opacity: 0.45 }}
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={currentQuestion}
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: -20 }}
+            transition={{ duration: 0.25, ease: 'easeOut' }}
+            aria-live="polite"
           >
-            Q{currentQuestion + 1} / {questions.length}
-          </div>
+            <div
+              className="text-xs font-bold uppercase mb-6"
+              style={{ letterSpacing: '0.12em', opacity: 0.45 }}
+            >
+              Q{currentQuestion + 1} / {questions.length}
+            </div>
 
-          <h2 className="text-2xl md:text-3xl font-bold mb-8 uppercase tracking-tight">
-            {question.question}
-          </h2>
+            <h2
+              ref={questionRef}
+              tabIndex={-1}
+              className="text-2xl md:text-3xl font-bold mb-8 uppercase tracking-tight focus:outline-none"
+            >
+              {question.question}
+            </h2>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            {shuffledAnswers.map((answer, index) => {
-              const isSelected = selectedAnswer === index;
-              const isDimmed = selectedAnswer !== null && selectedAnswer !== index;
-              const accentColor = personaData[answer.persona].color;
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              {shuffledAnswers.map((answer, index) => {
+                const isSelected = selectedAnswer === index;
+                const isDimmed = selectedAnswer !== null && selectedAnswer !== index;
+                const accentColor = personaData[answer.persona].color;
 
-              return (
-                <button
-                  key={index}
-                  onClick={() => handleAnswerSelect(index, answer.persona)}
-                  disabled={selectedAnswer !== null}
-                  className={`answer-card p-6 text-left relative ${isDimmed ? 'answer-dimmed' : ''} ${isSelected ? 'answer-selected' : ''}`}
-                >
-                  {isSelected && (
-                    <span
-                      className="absolute top-3 right-3 text-xs font-bold"
-                      style={{ color: accentColor }}
-                    >
-                      ●
-                    </span>
-                  )}
-                  <div className="flex items-start gap-4">
-                    <div className="flex-shrink-0" style={{ color: 'inherit' }}>
-                      {getIcon(answer.icon)}
+                return (
+                  <motion.button
+                    key={index}
+                    initial={{ opacity: 0, y: 8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.2, delay: index * 0.04 }}
+                    onClick={() => handleAnswerSelect(index, answer.persona)}
+                    disabled={selectedAnswer !== null}
+                    className={`answer-card p-6 text-left relative ${isDimmed ? 'answer-dimmed' : ''} ${isSelected ? 'answer-selected' : ''}`}
+                  >
+                    {isSelected && (
+                      <span
+                        className="absolute top-3 right-3 text-xs font-bold"
+                        style={{ color: accentColor }}
+                      >
+                        ●
+                      </span>
+                    )}
+                    <div className="flex items-start gap-4">
+                      <div className="flex-shrink-0" style={{ color: 'inherit' }}>
+                        {getIcon(answer.icon)}
+                      </div>
+                      <p className="text-sm font-medium uppercase leading-relaxed" style={{ letterSpacing: '0.04em' }}>
+                        {answer.text}
+                      </p>
                     </div>
-                    <p className="text-sm font-medium uppercase leading-relaxed" style={{ letterSpacing: '0.04em' }}>
-                      {answer.text}
-                    </p>
-                  </div>
-                </button>
-              );
-            })}
-          </div>
-        </div>
+                  </motion.button>
+                );
+              })}
+            </div>
+          </motion.div>
+        </AnimatePresence>
 
       </div>
     </div>

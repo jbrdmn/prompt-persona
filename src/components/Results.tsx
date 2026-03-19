@@ -1,8 +1,10 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
+import { motion } from 'framer-motion';
 import { Scores, SectionScores, PersonaType } from '../types';
 import { personaData, allTraits } from '../data/personas';
 import { RadarChart, PolarGrid, PolarAngleAxis, Radar, ResponsiveContainer, Legend } from 'recharts';
 import { useTheme } from '../context/ThemeContext';
+import { copyLink, shareToTwitter, shareToLinkedIn, nativeShare } from '../utils/share';
 
 interface ResultsProps {
   scores: Scores;
@@ -21,13 +23,16 @@ function topPersonaFromScores(s: Scores): PersonaType {
   return Object.entries(s).sort((a, b) => b[1] - a[1])[0][0] as PersonaType;
 }
 
+const sectionDelay = (i: number) => ({ initial: { opacity: 0, y: 16 }, animate: { opacity: 1, y: 0 }, transition: { duration: 0.4, delay: i * 0.12, ease: 'easeOut' as const } });
+
 export function Results({ scores, sectionScores, onRestart }: ResultsProps) {
   const { theme } = useTheme();
-  const [visible, setVisible] = useState(false);
+  const [copied, setCopied] = useState(false);
+  const canNativeShare = typeof navigator !== 'undefined' && !!navigator.share;
+  const headingRef = useRef<HTMLHeadingElement>(null);
 
   useEffect(() => {
-    const t = setTimeout(() => setVisible(true), 40);
-    return () => clearTimeout(t);
+    headingRef.current?.focus();
   }, []);
 
   const sorted = Object.entries(scores).sort((a, b) => b[1] - a[1]);
@@ -72,16 +77,15 @@ export function Results({ scores, sectionScores, onRestart }: ResultsProps) {
   const barTrackBg = isDark ? 'rgba(245,244,239,0.1)' : 'rgba(10,10,10,0.08)';
 
   return (
-    <div
-      className="min-h-screen px-6 md:px-12 py-12"
-      style={{ opacity: visible ? 1 : 0, transition: 'opacity 200ms' }}
-    >
+    <div className="min-h-screen px-6 md:px-12 py-12">
       <div className="max-w-4xl mx-auto">
 
-        <div className="mb-0">
+        <motion.div className="mb-0" {...sectionDelay(0)}>
           <div className="section-label mb-3">Your Prompt Persona</div>
           <h1
-            className="font-black uppercase leading-none"
+            ref={headingRef}
+            tabIndex={-1}
+            className="font-black uppercase leading-none focus:outline-none"
             style={{
               fontSize: 'clamp(80px, 12vw, 160px)',
               color: persona.color,
@@ -114,11 +118,11 @@ export function Results({ scores, sectionScores, onRestart }: ResultsProps) {
               You work like a {s1Top} but think like a {s3Top}
             </p>
           )}
-        </div>
+        </motion.div>
 
         <hr className="section-rule mb-10" />
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-0 mb-0">
+        <motion.div className="grid grid-cols-1 md:grid-cols-2 gap-0 mb-0" {...sectionDelay(1)}>
           <div className="p-8 border-[3px]" style={{ borderColor: baseColor }}>
             <p className="text-sm leading-relaxed">
               {persona.description}
@@ -145,21 +149,24 @@ export function Results({ scores, sectionScores, onRestart }: ResultsProps) {
               ))}
             </div>
           </div>
-        </div>
+        </motion.div>
 
         <hr className="section-rule mb-10 mt-0" />
 
-        <div className="mb-0">
+        <motion.div className="mb-0" {...sectionDelay(2)}>
           <div className="section-label mb-6">Traits</div>
           <div className="flex flex-wrap gap-2">
-            {allTraits.map((trait) => {
+            {allTraits.map((trait, i) => {
               const owned = isTraitOwned(trait);
               const textColor = owned
                 ? (needsDarkText(persona.color) ? '#0A0A0A' : '#F5F4EF')
                 : undefined;
               return (
-                <div
+                <motion.div
                   key={trait}
+                  initial={{ opacity: 0, scale: 0.9 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ duration: 0.2, delay: 0.24 + i * 0.03 }}
                   className="px-4 py-2 text-xs font-bold uppercase"
                   style={owned ? {
                     backgroundColor: persona.color,
@@ -174,15 +181,15 @@ export function Results({ scores, sectionScores, onRestart }: ResultsProps) {
                   }}
                 >
                   {trait}
-                </div>
+                </motion.div>
               );
             })}
           </div>
-        </div>
+        </motion.div>
 
         <hr className="section-rule mt-10 mb-10" />
 
-        <div className="mb-0">
+        <motion.div className="mb-0" {...sectionDelay(3)}>
           <div className="section-label mb-6">Profile</div>
           <ResponsiveContainer width="100%" height={420}>
             <RadarChart data={radarData} margin={{ top: 20, right: isMobile ? 20 : 44, bottom: 20, left: isMobile ? 20 : 44 }}>
@@ -235,17 +242,23 @@ export function Results({ scores, sectionScores, onRestart }: ResultsProps) {
               />
             </RadarChart>
           </ResponsiveContainer>
-        </div>
+        </motion.div>
 
         <hr className="section-rule mb-10" />
 
-        <div className="mb-12">
+        <motion.div className="mb-12" {...sectionDelay(4)}>
           <div className="section-label mb-6">Score Breakdown</div>
           <div className="space-y-3">
-            {sortedScores.map(([p, score]) => {
+            {sortedScores.map(([p, score], i) => {
               const color = personaData[p as PersonaType].color;
               return (
-                <div key={p} className="flex items-center gap-4">
+                <motion.div
+                  key={p}
+                  className="flex items-center gap-4"
+                  initial={{ opacity: 0, x: -12 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ duration: 0.3, delay: 0.48 + i * 0.06 }}
+                >
                   <div
                     className="text-xs font-bold uppercase w-20 md:w-28"
                     style={{ letterSpacing: '0.08em', opacity: 0.75 }}
@@ -256,10 +269,12 @@ export function Results({ scores, sectionScores, onRestart }: ResultsProps) {
                     className="flex-1 h-5"
                     style={{ backgroundColor: barTrackBg, border: `2px solid ${baseColor}` }}
                   >
-                    <div
+                    <motion.div
+                      initial={{ width: 0 }}
+                      animate={{ width: `${(score / 15) * 100}%` }}
+                      transition={{ duration: 0.6, delay: 0.48 + i * 0.06, ease: 'easeOut' }}
                       style={{
                         height: '100%',
-                        width: `${(score / 15) * 100}%`,
                         backgroundColor: color
                       }}
                     />
@@ -270,15 +285,81 @@ export function Results({ scores, sectionScores, onRestart }: ResultsProps) {
                   >
                     {score}
                   </div>
-                </div>
+                </motion.div>
               );
             })}
           </div>
-        </div>
+        </motion.div>
+
+        <hr className="section-rule mb-10" />
+
+        <motion.div className="mb-12" {...sectionDelay(5)}>
+          <div className="section-label mb-6">Share</div>
+          <div className="flex flex-wrap gap-3">
+            <button
+              onClick={async () => {
+                const ok = await copyLink();
+                if (ok) {
+                  setCopied(true);
+                  setTimeout(() => setCopied(false), 2000);
+                }
+              }}
+              className="px-5 py-3 text-xs font-bold uppercase"
+              style={{
+                letterSpacing: '0.08em',
+                border: `3px solid ${baseColor}`,
+                background: copied ? baseColor : 'transparent',
+                color: copied ? (isDark ? '#0A0A0A' : '#F5F4EF') : undefined,
+                cursor: 'pointer',
+              }}
+            >
+              {copied ? 'Copied' : 'Copy Link'}
+            </button>
+            <button
+              onClick={() => shareToTwitter(topPersona)}
+              className="px-5 py-3 text-xs font-bold uppercase"
+              style={{
+                letterSpacing: '0.08em',
+                border: `3px solid ${baseColor}`,
+                background: 'transparent',
+                cursor: 'pointer',
+              }}
+            >
+              Twitter / X
+            </button>
+            <button
+              onClick={() => shareToLinkedIn()}
+              className="px-5 py-3 text-xs font-bold uppercase"
+              style={{
+                letterSpacing: '0.08em',
+                border: `3px solid ${baseColor}`,
+                background: 'transparent',
+                cursor: 'pointer',
+              }}
+            >
+              LinkedIn
+            </button>
+            {canNativeShare && (
+              <button
+                onClick={() => nativeShare(topPersona)}
+                className="px-5 py-3 text-xs font-bold uppercase"
+                style={{
+                  letterSpacing: '0.08em',
+                  border: `3px solid ${persona.color}`,
+                  backgroundColor: persona.color,
+                  color: needsDarkText(persona.color) ? '#0A0A0A' : '#F5F4EF',
+                  cursor: 'pointer',
+                }}
+              >
+                Share
+              </button>
+            )}
+          </div>
+        </motion.div>
 
         <hr className="section-rule mb-8" />
 
-        <div className="pb-8">
+        <motion.div className="pb-8" {...sectionDelay(6)}>
           <button
             onClick={onRestart}
             className="text-xs font-bold uppercase hover:underline"
@@ -292,7 +373,7 @@ export function Results({ scores, sectionScores, onRestart }: ResultsProps) {
           >
             Restart
           </button>
-        </div>
+        </motion.div>
 
       </div>
     </div>
