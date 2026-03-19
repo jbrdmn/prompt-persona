@@ -298,7 +298,7 @@ export function Results({ scores, sectionScores, onRestart }: ResultsProps) {
           <div className="flex flex-wrap gap-3">
             <button
               onClick={async () => {
-                const ok = await copyLink();
+                const ok = await copyLink(topPersona);
                 if (ok) {
                   setCopied(true);
                   setTimeout(() => setCopied(false), 2000);
