@@ -1,0 +1,186 @@
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ─── Keyframes ────────────────────────────────────────────── */
+
+@keyframes blink {
+  0%, 49% { opacity: 1; }
+  50%, 100% { opacity: 0; }
+}
+
+@keyframes progress-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.35; }
+}
+
+.progress-block-active {
+  animation: progress-pulse 1.4s ease-in-out infinite;
+}
+
+/* ─── Base ─────────────────────────────────────────────────── */
+
+*, *::before, *::after {
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+body {
+  font-family: 'Space Grotesk', system-ui, sans-serif;
+  background-color: #F5F4EF;
+  color: #0A0A0A;
+  min-height: 100vh;
+  position: relative;
+}
+
+body::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 9999;
+  opacity: 0.04;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+  background-repeat: repeat;
+  background-size: 256px 256px;
+}
+
+.dark body {
+  background-color: #0A0A0A;
+  color: #F5F4EF;
+}
+
+/* ─── Section labels ───────────────────────────────────────── */
+
+.section-label {
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  font-weight: 500;
+  text-transform: uppercase;
+  color: rgba(10, 10, 10, 0.4);
+}
+
+.dark .section-label {
+  color: rgba(245, 244, 239, 0.4);
+}
+
+/* ─── Glass surface — stripped to flat panel ───────────────── */
+
+.glass {
+  background: transparent;
+  border: 3px solid #0A0A0A;
+}
+
+.dark .glass {
+  border-color: #F5F4EF;
+}
+
+/* ─── Answer cards ─────────────────────────────────────────── */
+
+.answer-card {
+  background: transparent;
+  border: 3px solid #0A0A0A;
+  color: #0A0A0A;
+  transition: background 120ms, color 120ms, border-color 120ms;
+}
+
+.answer-card:hover:not(:disabled) {
+  background: #0A0A0A;
+  color: #F5F4EF;
+}
+
+.answer-card.answer-selected {
+  background: #0A0A0A;
+  color: #F5F4EF;
+}
+
+.answer-card.answer-dimmed {
+  opacity: 0.3;
+}
+
+.dark .answer-card {
+  border-color: #F5F4EF;
+  color: #F5F4EF;
+}
+
+.dark .answer-card:hover:not(:disabled) {
+  background: #F5F4EF;
+  color: #0A0A0A;
+}
+
+.dark .answer-card.answer-selected {
+  background: #F5F4EF;
+  color: #0A0A0A;
+}
+
+/* ─── Theme toggle ─────────────────────────────────────────── */
+
+.theme-toggle {
+  background: transparent;
+  border: 3px solid #0A0A0A;
+  color: #0A0A0A;
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  transition: background 150ms, color 150ms;
+}
+
+.theme-toggle:hover {
+  background: #0A0A0A;
+  color: #F5F4EF;
+}
+
+.dark .theme-toggle {
+  border-color: #F5F4EF;
+  color: #F5F4EF;
+}
+
+.dark .theme-toggle:hover {
+  background: #F5F4EF;
+  color: #0A0A0A;
+}
+
+/* ─── Muted text ───────────────────────────────────────────── */
+
+.text-muted {
+  color: rgba(10, 10, 10, 0.45);
+}
+
+.dark .text-muted {
+  color: rgba(245, 244, 239, 0.45);
+}
+
+/* ─── Section divider ──────────────────────────────────────── */
+
+.section-rule {
+  border: none;
+  border-top: 3px solid #0A0A0A;
+  margin: 0;
+}
+
+.dark .section-rule {
+  border-top-color: #F5F4EF;
+}
+
+/* ─── Cursor blink ─────────────────────────────────────────── */
+
+.animate-blink {
+  animation: blink 1s step-end infinite;
+}
+
+/* ─── Flash-cut transitions ────────────────────────────────── */
+
+.question-enter {
+  opacity: 1;
+}
+
+.question-exit {
+  opacity: 0;
+}
