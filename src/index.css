@@ -201,6 +201,26 @@ body::after {
   color: #0A0A0A;
 }
 
+/* ─── Footer LinkedIn icon ────────────────────────────────── */
+
+.footer-linkedin {
+  color: rgba(10, 10, 10, 0.4);
+  transition: color 0.2s ease;
+  display: flex;
+}
+
+.footer-linkedin:hover {
+  color: #F5A623;
+}
+
+.dark .footer-linkedin {
+  color: rgba(245, 244, 239, 0.4);
+}
+
+.dark .footer-linkedin:hover {
+  color: #F5A623;
+}
+
 /* ─── Focus visible ───────────────────────────────────────── */
 
 :focus-visible {
